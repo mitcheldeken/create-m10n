@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 /**
- * create-convex-vercel
+ * create-m10n
  *
  * Creates a Convex + TanStack Start project configured for Vercel deployment.
  *
  * Usage:
- *   bun run https://raw.githubusercontent.com/mitcheldeken/create-convex-vercel/main/index.ts my-project
+ *   bunx create-m10n my-project
  */
 
 import { $ } from "bun";
@@ -463,7 +463,7 @@ ${colors.bold}create-convex-vercel${colors.reset}
 Create a Convex + TanStack Start project for Vercel.
 
 ${colors.bold}Usage:${colors.reset}
-  bun run https://raw.githubusercontent.com/mitcheldeken/create-convex-vercel/main/index.ts <project-name>
+  bunx create-m10n <project-name>
 
 ${colors.bold}Options:${colors.reset}
   -s, --skip-checks    Skip prerequisite checks

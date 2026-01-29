@@ -1,0 +1,34 @@
+{
+  "name": "create-m10n",
+  "version": "1.0.0",
+  "description": "Create a Convex + TanStack Start project configured for Vercel deployment",
+  "type": "module",
+  "bin": {
+    "create-m10n": "./index.ts"
+  },
+	"files": [
+		"index.ts"
+	],
+	"keywords": [
+		"convex",
+		"vercel",
+		"tanstack",
+		"tanstack-start",
+		"create",
+		"scaffold",
+		"cli"
+	],
+	"author": "Mitchel Deken",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/mitcheldeken/create-convex-vercel.git"
+	},
+	"bugs": {
+		"url": "https://github.com/mitcheldeken/create-convex-vercel/issues"
+	},
+	"homepage": "https://github.com/mitcheldeken/create-convex-vercel#readme",
+	"engines": {
+		"node": ">=18"
+	}
+}

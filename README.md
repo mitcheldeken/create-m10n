@@ -2,10 +2,16 @@
 
 Create a [Convex](https://convex.dev) + [TanStack Start](https://tanstack.com/start) project configured for [Vercel](https://vercel.com) deployment.
 
-## One-Liner Usage
+## Usage
 
 ```bash
-bun run https://raw.githubusercontent.com/mitcheldeken/create-convex-vercel/main/index.ts my-project
+bunx create-convex-vercel my-project
+```
+
+Or with npm:
+
+```bash
+npx create-convex-vercel my-project
 ```
 
 ## Prerequisites
@@ -41,15 +47,7 @@ bunx vercel login
 6. Initializes Git and creates GitHub repository
 7. Sets up Convex project
 8. Links project to Vercel
-
-## Post-Setup
-
-After the project is created, add environment variables in Vercel:
-
-| Variable            | Source                                    |
-| ------------------- | ----------------------------------------- |
-| `CONVEX_DEPLOY_KEY` | Convex Dashboard → Settings → Deploy Keys |
-| `VITE_CONVEX_URL`   | Your `.env.local` file                    |
+9. **Automatically adds environment variables to Vercel**
 
 ## Development
 
@@ -71,20 +69,6 @@ Or push to GitHub main branch for automatic deployment.
 ```
 -s, --skip-checks    Skip prerequisite checks
 -h, --help           Show help message
-```
-
-## Optional: Create an Alias
-
-Add to `~/.bashrc` or `~/.zshrc`:
-
-```bash
-alias create-convex-vercel='bun run https://raw.githubusercontent.com/mitcheldeken/create-convex-vercel/main/index.ts'
-```
-
-Then just run:
-
-```bash
-create-convex-vercel my-project
 ```
 
 ## License
