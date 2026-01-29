@@ -1,6 +1,6 @@
 {
 	"name": "create-m10n",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Create a Convex + TanStack Start project configured for Vercel deployment",
 	"type": "module",
 	"bin": {
