@@ -46,10 +46,10 @@ bunx vercel login
 
 After the project is created, add environment variables in Vercel:
 
-| Variable | Source |
-|----------|--------|
+| Variable            | Source                                    |
+| ------------------- | ----------------------------------------- |
 | `CONVEX_DEPLOY_KEY` | Convex Dashboard → Settings → Deploy Keys |
-| `VITE_CONVEX_URL` | Your `.env.local` file |
+| `VITE_CONVEX_URL`   | Your `.env.local` file                    |
 
 ## Development
 
