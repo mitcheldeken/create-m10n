@@ -446,6 +446,23 @@ async function createProject(projectName: string): Promise<void> {
 		console.log("     - VITE_CONVEX_URL (from .env.local)\n");
 	}
 
+	// Step 13: Final commit and push
+	console.log(c.header("Pushing Final Changes"));
+	try {
+		// Check if there are any changes to commit
+		const status = await $`git status --porcelain`.text();
+		if (status.trim()) {
+			console.log(c.info("Committing setup changes..."));
+			await $`git add .`;
+			await $`git commit -m "Complete project setup with Convex and Vercel configuration"`;
+		}
+		console.log(c.info("Pushing to GitHub..."));
+		await $`git push origin main`;
+		console.log(c.success("Changes pushed to GitHub"));
+	} catch {
+		console.log(c.warning("Could not push changes. Run manually: git push origin main"));
+	}
+
 	// Complete!
 	console.log(c.header("Setup Complete!"));
 	console.log(`  Project: ${projectPath}\n`);
