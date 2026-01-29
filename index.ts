@@ -333,7 +333,7 @@ async function createProject(projectName: string): Promise<void> {
 	console.log(c.info("Creating Convex project..."));
 	let convexUrl = "";
 	try {
-		await $`bunx convex dev --once`;
+		await $`bunx convex dev --once --configure new --project ${projectName} --dev-deployment cloud`;
 		console.log(c.success("Convex project initialized"));
 
 		// Read VITE_CONVEX_URL from .env.local
