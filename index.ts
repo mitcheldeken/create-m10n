@@ -252,7 +252,7 @@ export default defineConfig({
 const VERCEL_JSON = `{
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "bun install",
-  "buildCommand": "bunx convex deploy --cmd 'bun run build'"
+  "buildCommand": "bun run build"
 }
 `;
 
@@ -351,15 +351,48 @@ async function createProject(projectName: string): Promise<void> {
 	}
 
 	// Step 10: Get Convex Deploy Key
-	console.log(c.header("Convex Deploy Key"));
-	console.log(c.info("A deploy key is required for Vercel deployments.\n"));
+	console.log(c.header("Convex Production Deploy Key"));
+	console.log(
+		c.info("A PRODUCTION deploy key is required for Vercel deployments.\n"),
+	);
 	console.log("  1. Go to: https://dashboard.convex.dev");
 	console.log("  2. Select your project → Settings → Deploy Keys");
-	console.log("  3. Create a new deploy key and copy it\n");
-
-	const deployKey = await prompt(
-		`${colors.yellow}?${colors.reset} Paste your Convex Deploy Key (or press Enter to skip): `,
+	console.log(
+		`  3. Create a ${colors.bold}Production${colors.reset} deploy key (not Development!) and copy it\n`,
 	);
+
+	let deployKey = "";
+	while (true) {
+		deployKey = await prompt(
+			`${colors.yellow}?${colors.reset} Paste your Convex Production Deploy Key (or press Enter to skip): `,
+		);
+
+		if (!deployKey) {
+			// User skipped
+			break;
+		}
+
+		if (deployKey.startsWith("dev:")) {
+			console.log(
+				c.error(
+					"That's a Development deploy key. You need a Production deploy key.",
+				),
+			);
+			console.log(
+				`  Go to your Convex dashboard and create a ${colors.bold}Production${colors.reset} deploy key.\n`,
+			);
+			continue;
+		}
+
+		if (deployKey.startsWith("prod:")) {
+			console.log(c.success("Production deploy key detected"));
+			break;
+		}
+
+		// Unknown format, assume it's valid
+		console.log(c.warning("Unrecognized key format, proceeding anyway..."));
+		break;
+	}
 
 	// Step 11: Link to Vercel
 	console.log(c.header("Setting Up Vercel"));
@@ -459,7 +492,24 @@ async function createProject(projectName: string): Promise<void> {
 		console.log("     - VITE_CONVEX_URL (from .env.local)\n");
 	}
 
-	// Step 13: Deploy to Vercel
+	// Step 13: Deploy Convex to production
+	if (deployKey) {
+		console.log(c.header("Deploying Convex to Production"));
+		console.log(c.info("Running convex deploy..."));
+		try {
+			await $`CONVEX_DEPLOY_KEY=${deployKey} bunx convex deploy`;
+			console.log(c.success("Convex deployed to production"));
+		} catch (error) {
+			console.log(c.error("Convex deploy failed. Check the error above."));
+			console.log(
+				c.warning(
+					"You may need to verify your deploy key or check the Convex dashboard.",
+				),
+			);
+		}
+	}
+
+	// Step 14: Deploy to Vercel
 	console.log(c.header("Deploying to Vercel"));
 	console.log(c.info("Triggering production deployment..."));
 	try {
