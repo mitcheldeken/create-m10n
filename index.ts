@@ -458,7 +458,7 @@ async function main(): Promise<void> {
 
 	if (showHelp || !projectName) {
 		console.log(`
-${colors.bold}create-convex-vercel${colors.reset}
+${colors.bold}create-m10n${colors.reset}
 
 Create a Convex + TanStack Start project for Vercel.
 

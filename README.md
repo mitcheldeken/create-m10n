@@ -1,17 +1,19 @@
-# create-convex-vercel
+# create-m10n
 
 Create a [Convex](https://convex.dev) + [TanStack Start](https://tanstack.com/start) project configured for [Vercel](https://vercel.com) deployment.
+
+> m10n = mitcheldeken (numeronym)
 
 ## Usage
 
 ```bash
-bunx create-convex-vercel my-project
+bunx create-m10n my-project
 ```
 
 Or with npm:
 
 ```bash
-npx create-convex-vercel my-project
+npx create-m10n my-project
 ```
 
 ## Prerequisites
@@ -47,7 +49,7 @@ bunx vercel login
 6. Initializes Git and creates GitHub repository
 7. Sets up Convex project
 8. Links project to Vercel
-9. **Automatically adds environment variables to Vercel**
+9. Automatically adds environment variables to Vercel
 
 ## Development
 
