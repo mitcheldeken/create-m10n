@@ -125,10 +125,21 @@ async function checkGitHub(): Promise<{ ok: boolean; user?: string }> {
 	}
 }
 
-async function checkConvex(): Promise<{ ok: boolean; user?: string }> {
+async function checkConvex(): Promise<{ ok: boolean }> {
 	try {
-		const result = await $`bunx convex whoami`.text();
-		return { ok: true, user: result.trim().split("\n")[0] };
+		// Convex stores auth in ~/.convex/config.json
+		const homeDir = process.env.HOME || process.env.USERPROFILE || "";
+		const configPath = resolve(homeDir, ".convex", "config.json");
+
+		if (!existsSync(configPath)) {
+			return { ok: false };
+		}
+
+		const config = await Bun.file(configPath).json();
+		if (config.accessToken) {
+			return { ok: true };
+		}
+		return { ok: false };
 	} catch {
 		return { ok: false };
 	}
@@ -180,7 +191,7 @@ async function checkAllPrerequisites(): Promise<boolean> {
 	console.log(c.info("Checking Convex CLI..."));
 	const convex = await checkConvex();
 	if (convex.ok) {
-		console.log(c.success(`Convex CLI authenticated: ${convex.user}`));
+		console.log(c.success("Convex CLI authenticated"));
 	} else {
 		console.log(c.error("Convex CLI not authenticated"));
 		console.log("\n  To authenticate:\n    bunx convex login\n");
