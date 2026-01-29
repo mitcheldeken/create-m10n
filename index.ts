@@ -375,6 +375,19 @@ async function createProject(projectName: string): Promise<void> {
 		);
 	}
 
+	// Connect GitHub repo for automatic deployments
+	if (vercelLinked) {
+		console.log(
+			c.info("Connecting GitHub repository for automatic deployments..."),
+		);
+		try {
+			await $`bunx vercel git connect --yes`.quiet();
+		} catch {
+			// "already connected" exits non-zero but is fine
+		}
+		console.log(c.success("GitHub repository connected - auto-deploy enabled"));
+	}
+
 	// Step 12: Add environment variables to Vercel
 	if (vercelLinked) {
 		console.log(c.header("Adding Environment Variables to Vercel"));
@@ -446,21 +459,18 @@ async function createProject(projectName: string): Promise<void> {
 		console.log("     - VITE_CONVEX_URL (from .env.local)\n");
 	}
 
-	// Step 13: Final commit and push
-	console.log(c.header("Pushing Final Changes"));
+	// Step 13: Deploy to Vercel
+	console.log(c.header("Deploying to Vercel"));
+	console.log(c.info("Triggering production deployment..."));
 	try {
-		// Check if there are any changes to commit
-		const status = await $`git status --porcelain`.text();
-		if (status.trim()) {
-			console.log(c.info("Committing setup changes..."));
-			await $`git add .`;
-			await $`git commit -m "Complete project setup with Convex and Vercel configuration"`;
-		}
-		console.log(c.info("Pushing to GitHub..."));
-		await $`git push origin main`;
-		console.log(c.success("Changes pushed to GitHub"));
+		await $`bunx vercel --prod --yes`;
+		console.log(c.success("Deployed to Vercel"));
 	} catch {
-		console.log(c.warning("Could not push changes. Run manually: git push origin main"));
+		console.log(
+			c.warning(
+				"Could not deploy automatically. Run manually: bunx vercel --prod",
+			),
+		);
 	}
 
 	// Complete!
@@ -469,8 +479,9 @@ async function createProject(projectName: string): Promise<void> {
 	console.log(`  ${colors.green}Quick Start:${colors.reset}`);
 	console.log(`    cd ${projectName}`);
 	console.log("    bun run dev\n");
-	console.log(`  ${colors.green}Deploy:${colors.reset}`);
-	console.log("    bunx vercel --prod\n");
+	console.log(
+		`  ${colors.green}Auto-Deploy:${colors.reset} Push to GitHub to trigger Vercel deployments\n`,
+	);
 	console.log(c.success("Happy coding!"));
 }
 
