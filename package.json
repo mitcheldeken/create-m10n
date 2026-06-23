@@ -1,19 +1,30 @@
 {
 	"name": "create-m10n",
-	"version": "1.0.1",
-	"description": "Create a Convex + TanStack Start project configured for Vercel deployment",
+	"version": "1.1.0",
+	"description": "Create deterministic, agent-native micro-SaaS projects",
 	"type": "module",
 	"bin": {
-		"create-m10n": "./index.ts"
+		"create-m10n": "index.ts"
+	},
+	"scripts": {
+		"test": "bun test",
+		"dry-run": "bun index.ts example-saas --dry-run",
+		"smoke:live": "bun scripts/live-smoke.ts"
 	},
 	"files": [
-		"index.ts"
+		"AGENTS.md",
+		"index.ts",
+		"scripts",
+		"src"
 	],
 	"keywords": [
 		"convex",
 		"vercel",
-		"tanstack",
-		"tanstack-start",
+		"vite",
+		"vite-plus",
+		"workos",
+		"shadcn",
+		"micro-saas",
 		"create",
 		"scaffold",
 		"cli"
@@ -29,6 +40,6 @@
 	},
 	"homepage": "https://github.com/mitcheldeken/create-m10n#readme",
 	"engines": {
-		"node": ">=18"
+		"bun": ">=1.1.0"
 	}
 }
