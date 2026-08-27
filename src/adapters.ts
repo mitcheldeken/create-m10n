@@ -191,7 +191,7 @@ function checkFailure(result: CommandResult): SetupCheckResult {
 export class LocalAdapter implements SetupAdapter {
 	constructor(private readonly ctx: AdapterContext) {}
 
-	async check(step: SetupStep): Promise<SetupCheckResult> {
+	async check(step: SetupStep, state: SetupState): Promise<SetupCheckResult> {
 		switch (step.action) {
 			case "check-tools":
 				return this.checkTools(step);
@@ -201,8 +201,15 @@ export class LocalAdapter implements SetupAdapter {
 				return existsSync(join(this.ctx.projectPath, "package.json")) ? present() : missing();
 			case "bun-install":
 				return existsSync(join(this.ctx.projectPath, "node_modules")) ? present() : missing();
-			case "verify-local":
+			case "verify-local": {
+				// Check if verification was already completed successfully
+				const verifyStep = state.steps["verify.local"];
+				if (verifyStep?.status === "completed") {
+					return present({ verifiedLocal: "true" });
+				}
+				// Otherwise, we need to run verification
 				return missing();
+			}
 			default:
 				return missing();
 		}
@@ -222,7 +229,7 @@ export class LocalAdapter implements SetupAdapter {
 			}
 			case "verify-local": {
 				const result = await runIn(this.ctx.projectPath)`bun run check`;
-				return result.ok ? completed() : resultFailure(result, "local verification");
+				return result.ok ? completed({ verifiedLocal: "true" }) : resultFailure(result, "local verification");
 			}
 			default:
 				return completed();
@@ -262,7 +269,7 @@ export class LocalAdapter implements SetupAdapter {
 export class GitAdapter implements SetupAdapter {
 	constructor(private readonly ctx: AdapterContext) {}
 
-	async check(): Promise<SetupCheckResult> {
+	async check(step: SetupStep, state: SetupState): Promise<SetupCheckResult> {
 		if (!existsSync(join(this.ctx.projectPath, ".git"))) return missing();
 		const result = await runIn(this.ctx.projectPath)`git rev-parse --verify HEAD`;
 		return checkFailure(result);
@@ -293,8 +300,8 @@ export class GitAdapter implements SetupAdapter {
 export class GithubAdapter implements SetupAdapter {
 	constructor(private readonly ctx: AdapterContext) {}
 
-	async check(): Promise<SetupCheckResult> {
-		const repo = this.repoFullName();
+	async check(step: SetupStep, state: SetupState): Promise<SetupCheckResult> {
+		const repo = await this.repoFullName();
 		const view = await runIn(this.ctx.projectPath)`gh repo view ${repo} --json nameWithOwner --jq .nameWithOwner`;
 		if (!view.ok) return missing();
 		const remote = await runIn(this.ctx.projectPath)`git remote get-url origin`;
@@ -306,7 +313,7 @@ export class GithubAdapter implements SetupAdapter {
 
 	async apply(): Promise<SetupApplyResult> {
 		const visibility = this.ctx.context.visibility === "public" ? "--public" : "--private";
-		const repo = this.repoFullName();
+		const repo = await this.repoFullName();
 		const create = await runIn(this.ctx.projectPath)`gh repo create ${repo} ${visibility} --source=. --remote=origin`;
 		if (!create.ok) {
 			return {
@@ -343,10 +350,17 @@ export class GithubAdapter implements SetupAdapter {
 		return redact(value);
 	}
 
-	private repoFullName(): string {
-		return this.ctx.context.githubOwner
-			? `${this.ctx.context.githubOwner}/${this.ctx.context.projectSlug}`
-			: this.ctx.context.projectSlug;
+	private async repoFullName(): Promise<string> {
+		if (this.ctx.context.githubOwner) {
+			return `${this.ctx.context.githubOwner}/${this.ctx.context.projectSlug}`;
+		}
+		// Fetch default owner from gh cli
+		const userResult = await run`gh api user --jq .login`;
+		if (userResult.ok && userResult.stdout.trim()) {
+			return `${userResult.stdout.trim()}/${this.ctx.context.projectSlug}`;
+		}
+		// Fallback to just the slug (will likely fail, but maintains current behavior)
+		return this.ctx.context.projectSlug;
 	}
 }
 
@@ -357,11 +371,34 @@ export class ConvexAdapter implements SetupAdapter {
 		switch (step.action) {
 			case "init-project":
 				return existsSync(join(this.ctx.projectPath, ".env.local")) ? present() : missing();
-			case "authkit-configure":
+			case "authkit-configure": {
+				// Check if AuthKit is already configured by looking for the capability in convex.json
+				const convexJsonPath = join(this.ctx.projectPath, "convex.json");
+				if (existsSync(convexJsonPath)) {
+					try {
+						const convexJson = JSON.parse(await readFile(convexJsonPath, "utf8"));
+						const hasAuthKit = convexJson?.authInfo?.some(
+							(info: { applicationID?: string }) => info.applicationID?.startsWith("authkit_")
+						);
+						if (hasAuthKit) {
+							return present({ authkitConfigured: "true" });
+						}
+					} catch {
+						// If we can't read/parse convex.json, continue to check state
+					}
+				}
+				// Check if AuthKit was previously marked as configured in state
+				const stateKey = "authkitConfigured";
+				const configured = Object.values(state.steps).some((entry) => entry.resourceRefs?.[stateKey] === "true");
+				if (configured) {
+					return present({ [stateKey]: "true" });
+				}
+				// AuthKit setup is required but not yet complete - this is a blocker
 				return blocked(
 					"WorkOS/AuthKit provisioning may require provider consent or dashboard setup.",
-					"Complete the Convex AuthKit setup, then rerun with --resume.",
+					"Complete the Convex AuthKit setup in the dashboard, then rerun with --resume.",
 				);
+			}
 			case "deploy-key-preview":
 			case "deploy-key-production": {
 				const stateKey = step.action === "deploy-key-preview" ? "deployKeyPreviewSet" : "deployKeyProductionSet";
@@ -384,18 +421,25 @@ export class ConvexAdapter implements SetupAdapter {
 			case "deploy-key-preview":
 			case "deploy-key-production":
 				return this.applyDeployKey(step, input.interactive);
-			case "authkit-configure":
+			case "authkit-configure": {
+				// Try to run authkit setup non-interactively
+				const result = await runIn(this.ctx.projectPath)`bunx convex auth add authkit --skip-git-check`;
+				if (result.ok) {
+					return completed({ authkitConfigured: "true" });
+				}
+				// If non-interactive setup fails, this is a blocker requiring manual intervention
 				return failed(
 					"blocker",
 					"WorkOS/AuthKit provisioning may require provider consent or dashboard setup.",
-					"Complete the Convex AuthKit setup, then rerun with --resume.",
+					"Complete the Convex AuthKit setup in the dashboard, then rerun with --resume.",
 				);
+			}
 			default:
 				return completed();
 		}
 	}
 
-	async verify(step: SetupStep, result: SetupApplyResult, state?: SetupState): Promise<SetupCheckResult> {
+	async verify(step: SetupStep, result: SetupApplyResult): Promise<SetupCheckResult> {
 		if (result.status !== "completed") return { status: "blocked", failure: result.failure };
 		return present(result.resourceRefs);
 	}
@@ -436,11 +480,12 @@ export class ConvexAdapter implements SetupAdapter {
 		}
 
 		const target = isPreview ? "preview" : "production";
+		const projectName = this.ctx.context.projectSlug;
 		const runStdin = this.ctx.commands?.runWithStdin ?? runWithStdin;
 		const result = await runStdin(
 			this.ctx.projectPath,
 			key,
-		)`bunx vercel env add CONVEX_DEPLOY_KEY ${target} --force --sensitive`;
+		)`bunx vercel env add CONVEX_DEPLOY_KEY ${target} --project ${projectName} --force --sensitive`;
 		if (!result.ok) return resultFailure(result, `Vercel ${target} CONVEX_DEPLOY_KEY setup`);
 		return completed({ [isPreview ? "deployKeyPreviewSet" : "deployKeyProductionSet"]: "true" });
 	}
@@ -449,7 +494,7 @@ export class ConvexAdapter implements SetupAdapter {
 export class VercelAdapter implements SetupAdapter {
 	constructor(private readonly ctx: AdapterContext) {}
 
-	async check(step: SetupStep): Promise<SetupCheckResult> {
+	async check(step: SetupStep, state: SetupState): Promise<SetupCheckResult> {
 		switch (step.action) {
 			case "create-product-project":
 			case "create-marketing-project": {
@@ -528,10 +573,11 @@ export class VercelAdapter implements SetupAdapter {
 
 	private async setMarketingEnv(): Promise<SetupApplyResult> {
 		const productDomain = `${this.ctx.context.projectSlug}.vercel.app`;
+		const marketingProject = `${this.ctx.context.projectSlug}-marketing`;
 		const result = await runWithStdin(
 			this.ctx.projectPath,
 			`https://${productDomain}`,
-		)`bunx vercel env add VITE_APP_URL preview production development --force`;
+		)`bunx vercel env add VITE_APP_URL preview production development --project ${marketingProject} --force`;
 		return result.ok ? completed({ VITE_APP_URL: productDomain }) : resultFailure(result, "Marketing VITE_APP_URL setup");
 	}
 
