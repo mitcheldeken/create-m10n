@@ -1,7 +1,7 @@
 import { existsSync } from "fs";
 import { readFile, writeFile } from "fs/promises";
 import { resolve } from "path";
-import { createSetupAdapters } from "./adapters";
+import { createEnvSetupSecretProvider, createSetupAdapters } from "./adapters";
 import { c, colors } from "./colors";
 import { listGeneratedFiles, toJson, writeGeneratedFiles } from "./files";
 import { getRecipe, recipeIds, recipes } from "./recipes";
@@ -450,6 +450,7 @@ async function runSetup(
 			context,
 			project,
 			skipChecks: options.skipChecks,
+			secretProvider: createEnvSetupSecretProvider(),
 		}),
 	});
 

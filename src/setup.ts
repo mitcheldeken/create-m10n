@@ -391,7 +391,7 @@ export function buildSetupPlan(recipe: RecipeId, ctx: CreateContext): SetupPlan 
 }
 
 export class BlockerAdapter implements SetupAdapter {
-	async check(step: SetupStep): Promise<SetupCheckResult> {
+	async check(step: SetupStep, state: SetupState): Promise<SetupCheckResult> {
 		if (step.blocker) {
 			return {
 				status: "blocked",
@@ -401,7 +401,7 @@ export class BlockerAdapter implements SetupAdapter {
 		return { status: "missing" };
 	}
 
-	async apply(step: SetupStep): Promise<SetupApplyResult> {
+	async apply(step: SetupStep, input: { state: SetupState; interactive: boolean }): Promise<SetupApplyResult> {
 		if (step.blocker) {
 			return {
 				status: "blocked",
@@ -484,7 +484,8 @@ export async function executeSetupPlan(args: {
 					failure: checked.failure,
 				};
 				await writeSetupState(args.projectPath, state);
-				return state;
+				// Don't return here - continue with other steps that don't depend on this one
+				continue;
 			}
 
 			current.attempts += 1;
@@ -510,8 +511,10 @@ export async function executeSetupPlan(args: {
 			};
 
 			await writeSetupState(args.projectPath, state);
-			if (finalStatus === "blocked" || finalStatus === "failed") return state;
+			// Treat blocked as progress so other independent steps can run
 			madeProgress = true;
+			// Only return early on fatal failures
+			if (finalStatus === "failed") return state;
 		}
 	}
 
